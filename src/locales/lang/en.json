@@ -1,0 +1,24 @@
+{
+  "nav": {
+    "home": "Home",
+    "questions": "Questions",
+    "tags": "Tags",
+    "users": {
+      "users": "Users",
+      "item1": "Students",
+      "item2": "Teachers",
+      "item3": "Faculty Admins"
+    },
+    "others": {
+      "others": "Others",
+      "single": "Saves",
+      "collapse": {
+        "collapse": "Group collapse menu",
+        "item1": "Group collapse menu item 1",
+        "item2": "Group collapse menu item 2"
+      }
+    },
+    "feedback": "Feedback",
+    "leaderboard:": "Leader Board"
+  }
+}
