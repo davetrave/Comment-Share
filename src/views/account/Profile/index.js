@@ -7,7 +7,8 @@ import {
   Notification,
   toast,
   FormContainer,
-  Tooltip
+  Tooltip,
+  Select // Make sure Select is imported
 } from "components/ui";
 import FormDescription from "../common/FormDescription";
 import FormRow from "../common/FormRow";
@@ -24,11 +25,25 @@ import { useState } from "react";
 import { setUser } from "store/auth/userSlice";
 import { useDispatch, useSelector } from "react-redux";
 
+const gender = [
+  {
+    label: "Male",
+    value: "M"
+  },
+  { label: "Female", value: "F" }
+];
+
+const genderOptions = gender.map(gender => ({
+  value: gender.value,
+  label: gender.label
+}));
+
 const validationSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email"),
   phone_number: Yup.string(),
   bio: Yup.string(),
-  avatar: Yup.string().nullable()
+  avatar: Yup.string().nullable(),
+  gender: Yup.string().nullable() // Keep this here as it's necessary for Yup validation
 });
 
 function Profile({ data }) {
@@ -48,11 +63,22 @@ function Profile({ data }) {
     try {
       let formData = new FormData();
       for (let key in values) {
-        if (key === "avatar" && typeof values[key] === "string") {
+        // Skip avatar if it's an unchanged string (meaning it's the URL from initial data)
+        if (key === "avatar" && typeof values[key] === "string" && !preview) {
           continue;
         }
-        formData.append(key, values[key]);
+        // If avatar is being cleared (set to an empty string), or a new file is selected, append it
+        if (
+          key === "avatar" &&
+          (values[key] === "" || values[key] instanceof File)
+        ) {
+          formData.append(key, values[key]);
+        } else if (key !== "avatar") {
+          // For all other fields
+          formData.append(key, values[key]);
+        }
       }
+
       const response = await apiUpdateProfile(formData);
       setSubmitting(false);
       if (response.data) {
@@ -68,7 +94,9 @@ function Profile({ data }) {
         dispatch(
           setUser({
             ...user,
-            avatar: response.data.avatar
+            // Assuming your API returns the updated user object with avatar and gender
+            avatar: response.data.avatar,
+            gender: response.data.gender // Update gender in Redux store
           })
         );
       }
@@ -139,9 +167,9 @@ function Profile({ data }) {
               <FormRow name="avatar" label="Avatar" {...validatorProps}>
                 <Field name="avatar">
                   {({ field, form }) => {
-                    const avatarProps = preview
-                      ? { src: preview }
-                      : { src: field.value };
+                    const avatarSrc = preview || field.value; // Use preview if available, otherwise field.value
+                    const avatarProps = avatarSrc ? { src: avatarSrc } : {}; // If no avatar, just pass an empty object or a default icon
+
                     return (
                       <div className="flex items-center gap-4">
                         <Upload
@@ -161,12 +189,12 @@ function Profile({ data }) {
                             {...avatarProps}
                           />
                         </Upload>
-                        {field.value && (
+                        {(field.value || preview) && ( // Show remove button if there's an avatar or a preview
                           <button
                             type="button"
                             onClick={() => {
-                              form.setFieldValue("avatar", "");
-                              setPreview(null);
+                              form.setFieldValue("avatar", ""); // Set avatar to empty string to indicate removal
+                              setPreview(null); // Clear the preview
                             }}
                           >
                             <Tooltip title="Remove avatar" placement="right">
@@ -193,6 +221,30 @@ function Profile({ data }) {
                   component={Input}
                   prefix={<HiOutlineDocumentText className="text-xl" />}
                 />
+              </FormRow>
+              <FormRow
+                label="Gender"
+                invalid={errors.gender && touched.gender}
+                {...validatorProps}
+                border={false}
+                errorMessage={errors.gender}
+              >
+                <Field name="gender">
+                  {({ field, form }) => (
+                    <Select
+                      form={form} // Pass the form object
+                      field={field} // Pass the field object
+                      options={genderOptions}
+                      placeholder="Select Gender"
+                      value={genderOptions.find(
+                        option => option.value === field.value
+                      )}
+                      onChange={option => {
+                        form.setFieldValue("gender", option.value);
+                      }}
+                    />
+                  )}
+                </Field>
               </FormRow>
               <div className="mt-4 ltr:text-right">
                 <Button
